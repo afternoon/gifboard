@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+
+<html ng-app="gifboard" ng-controller="gifboardCtrl">
+  <head>
+    <title>gifboard</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+      body {
+        padding: 0;
+        font-family: menlo, monospace;
+      }
+      h1 {
+        text-align: center;
+        font-weight: normal;
+        margin-top: 0;
+        text-shadow: 1px 1px 0 black;
+      }
+      .pipelines {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+      .pipeline {
+        display: inline-block;
+        color: black;
+        box-sizing: border-box;
+        padding: 2em;
+      }
+      .pipeline-blue h1 span, .pipeline-red h1 span {
+        display: inline-block;
+        padding: 0.2em;
+        color: white;
+      }
+      .pipeline-blue h1 span { background-color: green; }
+      .pipeline-red h1 span { background-color: red; }
+      .pipeline-status {
+        width: 100%;
+        height: calc(100% - 5em);
+        margin: 0 auto;
+        position: relative;
+        background-size: contain;
+        background-position: center center;
+        background-repeat: no-repeat;
+      }
+      .pipeline-tag {
+        position: absolute;
+        right: 0.5em;
+        bottom: 0.5em;
+        color: black;
+        text-shadow: 1px 1px 0 white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="gifboard">
+      <div class="pipelines">
+        <div ng-repeat="pipeline in pipelines"
+             class="pipeline pipeline-{{pipeline.color}}"
+             style="width: {{pipelineWidth}}; height: {{pipelineHeight}};">
+          <h1><span>{{pipeline.name}}</span></h1>
+          <div class="pipeline-status" style="background-image: url({{pipeline.image.url}})">
+            <div class="pipeline-tag">
+              #{{pipeline.tag}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="angular.min.js"></script>
+
+    <script>
+      angular
+        .module('gifboard', [])
+        .controller(
+          'gifboardCtrl',
+          function ($scope, $window, $location, $q, $http, $interval) {
+            $scope.pipelines = [];
+
+            var giphyKey = 'dc6zaTOxFJmzC',
+              giphyRating = 'pg-13';
+
+            var params = $location.search(),
+              jenkins = params.jenkins || 'localhost',
+              pipelineNames = params.pipeline,
+              passTag = params.pass || 'dance',
+              failTag = params.fail || 'facepalm',
+              updateInterval = 60000;
+
+            console.log('params', params);
+            console.log('jenkins', jenkins);
+
+            var gridDimensions = function (n) {
+              var rows = Math.floor(Math.sqrt(n)),
+                cols = Math.ceil(n / rows);
+              if ($window.innerHeight > $window.innerWidth) {
+                // rotate layout for portrait orientation
+                return {rows: cols, cols: rows};
+              } else {
+                return {rows: rows, cols: cols};
+              }
+            };
+
+            $scope.dimensions = gridDimensions(params.pipeline.length);
+            $scope.pipelineWidth = (100 / $scope.dimensions.cols) + '%';
+            $scope.pipelineHeight = (100 / $scope.dimensions.rows) + '%';
+
+            var pipelineColor = function (pipeline) {
+              var isBlue = pipeline.jobs.every(function (job) {
+                return job.color === 'blue' || job.color === 'blue_anime';
+              });
+              return isBlue ? 'blue' : 'red';
+            };
+
+            var transformPipelineData = function (pipelineName, pipelineData) {
+              var color = pipelineColor(pipelineData),
+                tag = color === 'blue' ? passTag : failTag;
+              return playGifRoulette(tag).then(function (gifData) {
+                return {
+                  name: pipelineName,
+                  color: color,
+                  tag: tag,
+                  image: gifData
+                };
+              });
+            };
+
+            var pipelineData = function (pipelineName) {
+              /*
+              var url = 'http://' + jenkins + '/view/' +
+                        encodeURIComponent(pipelineName) +
+                        '/api/json?pretty=true&depth=2&tree=jobs[name,color,lastBuild[duration,number,url]]';
+              return $http.get(url).then(function (data) {
+                return transformPipelineData(pipelineName, data);
+              });
+              */
+
+              var mockPipelineData = {
+                'foo': {
+                  jobs: [
+                    {name: 'Build', color: 'red'},
+                    {name: 'Deploy Staging', color: 'blue'},
+                    {name: 'Deploy Preprod', color: 'blue'},
+                    {name: 'Deploy Live', color: 'blue'}
+                  ]
+                },
+                'bar': {
+                  jobs: [
+                    {name: 'Build', color: 'blue'},
+                    {name: 'Deploy Staging', color: 'blue'},
+                    {name: 'Deploy Preprod', color: 'blue'},
+                    {name: 'Deploy Live', color: 'blue'}
+                  ]
+                }
+              };
+
+              var deferred = $q.defer(),
+                mockData = mockPipelineData[pipelineName] ||
+                  mockPipelineData['foo'];
+
+              transformPipelineData(pipelineName, mockData).then(function (data) {
+                  deferred.resolve(data);
+                });
+              return deferred.promise;
+            };
+
+            var playGifRoulette = function (tag) {
+              var deferred = $q.defer();
+              deferred.resolve({url: ''});
+              return deferred.promise;
+              var url = 'http://api.giphy.com/v1/stickers/random?api_key=' +
+                        giphyKey + '&rating=' + giphyRating + '&tag=' + tag
+              return $http
+                .get(url)
+                .then(function (response) {
+                  return {
+                    url: response.data.data.image_url,
+                  };
+                });
+            };
+
+            var update = function () {
+              console.log('updating...');
+              pipelineNames.forEach(function (name, index) {
+                pipelineData(name).then(function (data) {
+                  $scope.pipelines[index] = data;
+                });
+              })
+            };
+
+            update();
+            $interval(update, updateInterval);
+          }
+        );
+    </script>
+  </body>
+</html>
