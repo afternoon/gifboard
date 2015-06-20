@@ -16,7 +16,6 @@
         text-align: center;
         font-weight: normal;
         margin-top: 0;
-        text-shadow: 1px 1px 0 black;
       }
       .pipelines {
         position: absolute;
@@ -34,9 +33,8 @@
       .pipeline-blue h1 span, .pipeline-red h1 span {
         display: inline-block;
         padding: 0.2em;
-        color: white;
       }
-      .pipeline-blue h1 span { background-color: green; }
+      .pipeline-blue h1 span { background-color: #0f0; }
       .pipeline-red h1 span { background-color: red; }
       .pipeline-status {
         width: 100%;
@@ -51,6 +49,8 @@
         position: absolute;
         right: 0.5em;
         bottom: 0.5em;
+      }
+      h1, .pipeline-tag {
         color: black;
         text-shadow: 1px 1px 0 white;
       }
@@ -80,15 +80,15 @@
         .module('gifboard', [])
         .controller(
           'gifboardCtrl',
-          function ($scope, $window, $location, $q, $http, $interval) {
+          function ($scope, $window, $location, $http, $interval) {
             $scope.pipelines = [];
 
             var giphyKey = 'dc6zaTOxFJmzC',
               giphyRating = 'pg-13';
 
             var params = $location.search(),
-              jenkins = params.jenkins || 'localhost',
-              pipelineNames = params.pipeline,
+              jenkins = params.jenkins,
+              pipelineNames = typeof params.pipeline === 'string' ? [params.pipeline] : params.pipeline,
               passTag = params.pass || 'dance',
               failTag = params.fail || 'facepalm',
               updateInterval = 60000;
@@ -107,7 +107,7 @@
               }
             };
 
-            $scope.dimensions = gridDimensions(params.pipeline.length);
+            $scope.dimensions = gridDimensions(pipelineNames.length);
             $scope.pipelineWidth = (100 / $scope.dimensions.cols) + '%';
             $scope.pipelineHeight = (100 / $scope.dimensions.rows) + '%';
 
@@ -132,48 +132,17 @@
             };
 
             var pipelineData = function (pipelineName) {
-              /*
-              var url = 'http://' + jenkins + '/view/' +
-                        encodeURIComponent(pipelineName) +
-                        '/api/json?pretty=true&depth=2&tree=jobs[name,color,lastBuild[duration,number,url]]';
-              return $http.get(url).then(function (data) {
-                return transformPipelineData(pipelineName, data);
+              var url = '/view/' + encodeURIComponent(pipelineName) +
+                         '/api/json?pretty=true&depth=2&tree=jobs[name,color,lastBuild[duration,number,url]]';
+              if (jenkins) {
+                url = 'http://' + jenkins + path;
+              }
+              return $http.get(url).then(function (response) {
+                return transformPipelineData(pipelineName, response.data);
               });
-              */
-
-              var mockPipelineData = {
-                'foo': {
-                  jobs: [
-                    {name: 'Build', color: 'red'},
-                    {name: 'Deploy Staging', color: 'blue'},
-                    {name: 'Deploy Preprod', color: 'blue'},
-                    {name: 'Deploy Live', color: 'blue'}
-                  ]
-                },
-                'bar': {
-                  jobs: [
-                    {name: 'Build', color: 'blue'},
-                    {name: 'Deploy Staging', color: 'blue'},
-                    {name: 'Deploy Preprod', color: 'blue'},
-                    {name: 'Deploy Live', color: 'blue'}
-                  ]
-                }
-              };
-
-              var deferred = $q.defer(),
-                mockData = mockPipelineData[pipelineName] ||
-                  mockPipelineData['foo'];
-
-              transformPipelineData(pipelineName, mockData).then(function (data) {
-                  deferred.resolve(data);
-                });
-              return deferred.promise;
             };
 
             var playGifRoulette = function (tag) {
-              var deferred = $q.defer();
-              deferred.resolve({url: ''});
-              return deferred.promise;
               var url = 'http://api.giphy.com/v1/stickers/random?api_key=' +
                         giphyKey + '&rating=' + giphyRating + '&tag=' + tag
               return $http
