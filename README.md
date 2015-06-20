@@ -3,6 +3,8 @@ gifboard
 
 Monitor your Jenkins build pipelines with animated GIFs.
 
+![Example](http://i.giphy.com/l41m3JUjvS7UeJZQY.gif)
+
 GIFs come from the wonderful [Giphy](http://giphy.com/).
 
 Build Pipelines
