@@ -14,7 +14,7 @@ gifboard displays the status of build pipelines created with the [Jenkins Build
 Pipeline
 Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Build+Pipeline+Plugin). If
 you're not using that, gifboard currently won't work. (Though it would be a
-straightforward change - hint hint.)
+straightforward change to monitor jobs - hint hint.)
 
 Usage
 -----
@@ -53,7 +53,7 @@ Currently only GIFs rated PG-13 or below are shown.
 jenkins=localhost
 ```
 
-Specify the Jenkins host name.
+Specify the Jenkins host name. Defaults to the origin host from which gifboard was loaded.
 
 ### CORS
 
