@@ -83,14 +83,14 @@
           function ($scope, $window, $location, $http, $interval) {
             $scope.pipelines = [];
 
-            var giphyKey = 'dc6zaTOxFJmzC',
-              giphyRating = 'pg-13';
 
             var params = $location.search(),
               jenkins = params.jenkins,
               pipelineNames = typeof params.pipeline === 'string' ? [params.pipeline] : params.pipeline,
               passTag = params.pass || 'dance',
               failTag = params.fail || 'facepalm',
+              rating = params.rating || 'pg',
+              giphyKey = 'dc6zaTOxFJmzC',
               updateInterval = 60000;
 
             console.log('params', params);
@@ -135,7 +135,7 @@
               var url = '/view/' + encodeURIComponent(pipelineName) +
                          '/api/json?pretty=true&depth=2&tree=jobs[name,color,lastBuild[duration,number,url]]';
               if (jenkins) {
-                url = 'http://' + jenkins + path;
+                url = 'http://' + jenkins + url;
               }
               return $http.get(url).then(function (response) {
                 return transformPipelineData(pipelineName, response.data);
@@ -144,7 +144,7 @@
 
             var playGifRoulette = function (tag) {
               var url = 'http://api.giphy.com/v1/stickers/random?api_key=' +
-                        giphyKey + '&rating=' + giphyRating + '&tag=' + tag
+                        giphyKey + '&rating=' + rating + '&tag=' + tag
               return $http
                 .get(url)
                 .then(function (response) {
