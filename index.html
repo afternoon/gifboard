@@ -133,7 +133,7 @@
 
             var pipelineData = function (pipelineName) {
               var url = '/view/' + encodeURIComponent(pipelineName) +
-                         '/api/json?pretty=true&depth=2&tree=jobs[name,color,lastBuild[duration,number,url]]';
+                        '/api/json';
               if (jenkins) {
                 url = 'http://' + jenkins + url;
               }
